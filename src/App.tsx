@@ -35,36 +35,45 @@ const suggestions = [
   "Suggest a batting strategy",
 ];
 
+
 function renderMessageText(text: string): ReactNode[] {
   const lines = text.split(/\r?\n/);
 
   return lines.flatMap((line, lineIndex) => {
-    const content: ReactNode[] = [];
-    const pattern = /\*\*(.+?)\*\*/g;
+    const parts: ReactNode[] = [];
+    const pattern = /\*\*(.+?)\*\*|\*(.+?)\*/g;
     let lastIndex = 0;
     let match: RegExpExecArray | null;
     let partIndex = 0;
 
     while ((match = pattern.exec(line)) !== null) {
       if (match.index > lastIndex) {
-        content.push(
+        parts.push(
           <span key={`text-${lineIndex}-${partIndex++}`}>
             {line.slice(lastIndex, match.index)}
           </span>
         );
       }
 
-      content.push(
-        <strong key={`bold-${lineIndex}-${partIndex++}`}>
-          {match[1]}
-        </strong>
-      );
+      if (match[1] !== undefined) {
+        parts.push(
+          <strong key={`bold-${lineIndex}-${partIndex++}`}>
+            {match[1]}
+          </strong>
+        );
+      } else {
+        parts.push(
+          <em key={`italic-${lineIndex}-${partIndex++}`}>
+            {match[2]}
+          </em>
+        );
+      }
 
       lastIndex = pattern.lastIndex;
     }
 
-    if (lastIndex < line.length || content.length === 0) {
-      content.push(
+    if (lastIndex < line.length || parts.length === 0) {
+      parts.push(
         <span key={`end-${lineIndex}-${partIndex}`}>
           {line.slice(lastIndex)}
         </span>
@@ -72,13 +81,12 @@ function renderMessageText(text: string): ReactNode[] {
     }
 
     return [
-      ...(lineIndex > 0
-        ? [<br key={`break-${lineIndex}`} />]
-        : []),
-      ...content,
+      ...(lineIndex > 0 ? [<br key={`break-${lineIndex}`} />] : []),
+      ...parts,
     ];
   });
 }
+
 
 function App() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
