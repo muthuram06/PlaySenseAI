@@ -312,3 +312,44 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+/* PlaySense AI layout fixes */
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.app-shell,
+.main-content,
+.page-content {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.chat-panel {
+  min-width: 0;
+}
+
+.chat-messages {
+  max-height: none;
+  overflow-y: visible;
+  min-width: 0;
+}
+
+.message-bubble {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 900px) {
+  .main-content {
+    width: 100%;
+  }
+}
