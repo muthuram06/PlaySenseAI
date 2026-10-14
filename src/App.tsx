@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import "./App.css";
 
 type Message = {
@@ -15,7 +16,10 @@ type ChatResponse = {
   isDemoData?: boolean;
 };
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = (
+  import.meta.env.VITE_API_URL ||
+  "https://playsenseai-backend.onrender.com/api"
+).replace(/\/+$/, "");
 
 const initialMessages: Message[] = [
   {
@@ -30,6 +34,51 @@ const suggestions = [
   "Explain Arjun's strike rate",
   "Suggest a batting strategy",
 ];
+
+function renderMessageText(text: string): ReactNode[] {
+  const lines = text.split(/\r?\n/);
+
+  return lines.flatMap((line, lineIndex) => {
+    const content: ReactNode[] = [];
+    const pattern = /\*\*(.+?)\*\*/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    let partIndex = 0;
+
+    while ((match = pattern.exec(line)) !== null) {
+      if (match.index > lastIndex) {
+        content.push(
+          <span key={`text-${lineIndex}-${partIndex++}`}>
+            {line.slice(lastIndex, match.index)}
+          </span>
+        );
+      }
+
+      content.push(
+        <strong key={`bold-${lineIndex}-${partIndex++}`}>
+          {match[1]}
+        </strong>
+      );
+
+      lastIndex = pattern.lastIndex;
+    }
+
+    if (lastIndex < line.length || content.length === 0) {
+      content.push(
+        <span key={`end-${lineIndex}-${partIndex}`}>
+          {line.slice(lastIndex)}
+        </span>
+      );
+    }
+
+    return [
+      ...(lineIndex > 0
+        ? [<br key={`break-${lineIndex}`} />]
+        : []),
+      ...content,
+    ];
+  });
+}
 
 function App() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -64,7 +113,9 @@ function App() {
       const result: ChatResponse = await response.json();
 
       if (!response.ok || !result.success || !result.answer) {
-        throw new Error(result.error || "Unable to answer right now.");
+        throw new Error(
+          result.error || `The request failed (${response.status}).`
+        );
       }
 
       setMessages((current) => {
@@ -72,7 +123,7 @@ function App() {
 
         updated[updated.length - 1] = {
           role: "ai",
-          text: result.answer as string,
+          text: result.answer!,
         };
 
         return updated;
@@ -81,7 +132,7 @@ function App() {
       setSource(
         result.source === "gemini"
           ? "Powered by Gemini"
-          : "Local demo response",
+          : "Local demo response"
       );
     } catch (error) {
       const errorMessage =
@@ -94,17 +145,19 @@ function App() {
 
         updated[updated.length - 1] = {
           role: "ai",
-          text: `Couldn't connect to PlaySense AI: ${errorMessage}. Please check that the backend is running on port 5000.`,
+          text: `Sorry, I couldn't get an answer. ${errorMessage} Please try again.`,
         };
 
         return updated;
       });
+
+      setSource("");
     } finally {
       setLoading(false);
     }
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void askQuestion(question);
   }
@@ -336,7 +389,10 @@ function App() {
                   <small>
                     {message.role === "ai" ? "PLAYSENSE AI" : "YOU"}
                   </small>
-                  <p>{message.text}</p>
+
+                  <p className="message-text">
+                    {renderMessageText(message.text)}
+                  </p>
                 </div>
               </div>
             ))}
